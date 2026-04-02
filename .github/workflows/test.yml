@@ -19,3 +19,41 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       - run: go test -v -cover ./...
+      - run: go build -o cli-template
+        shell: bash
+
+      # Test CLI execution
+      - name: Test CLI on ${{ matrix.os }} with Go ${{ matrix.go-version }}
+        run: |
+          ./cli-template hello --help
+          ./cli-template hello --name "Test User"
+          ./cli-template config set test value
+          ./cli-template config get test
+        shell: bash
+
+      # Cross-compile to multiple architectures
+      - name: Cross-compile binaries
+        if: matrix.go-version == '1.22'
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o cli-template-linux-amd64
+          GOOS=darwin GOARCH=amd64 go build -o cli-template-darwin-amd64
+          GOOS=darwin GOARCH=arm64 go build -o cli-template-darwin-arm64
+          GOOS=windows GOARCH=amd64 go build -o cli-template-windows-amd64.exe
+        shell: bash
+
+      # Capture metrics
+      - name: Capture build metrics
+        if: runner.os == 'Linux' && matrix.go-version == '1.22'
+        run: |
+          echo "Build Metrics for Go Cobra" > metrics.txt
+          echo "OS: ${{ matrix.os }}" >> metrics.txt
+          echo "Go Version: ${{ matrix.go-version }}" >> metrics.txt
+          echo "Build completed at: $(date)" >> metrics.txt
+          ls -lh cli-template-* >> metrics.txt
+
+      - name: Upload build metrics
+        if: runner.os == 'Linux' && matrix.go-version == '1.22'
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-metrics-${{ matrix.os }}
+          path: metrics.txt

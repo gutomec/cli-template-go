@@ -1,0 +1,27 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      - run: |
+          mkdir -p artifacts
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
+            -o artifacts/cli-template-${{ matrix.goos }}-${{ matrix.goarch }} .
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: artifacts/
